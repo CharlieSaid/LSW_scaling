@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>lsw_scale_working_title — Lego Star Wars Scale Comparison</title>
+    <meta
+      name="description"
+      content="Compare Lego Star Wars set scales (UCS, Playscale, BAUFman) against in-universe ship sizes. Interactive plot, curve fits, and a bidirectional scale calculator."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1 class="brand">lsw_scale_working_title</h1>
+      <p class="tagline">
+        Lego Star Wars scaling tool: Compare scales against canon ship sizes.
+      </p>
+      <div class="info-menu">
+        <button
+          type="button"
+          class="info-btn"
+          id="info-btn"
+          aria-expanded="false"
+          aria-controls="info-panel"
+          title="About this site"
+        >
+          <span class="info-btn-icon" aria-hidden="true">i</span>
+          <span class="visually-hidden">About this site</span>
+        </button>
+        <aside
+          class="info-box"
+          id="info-panel"
+          role="dialog"
+          aria-label="About this site"
+          hidden
+        >
+          <p class="credit">Created by BAUFman Bricks and Charlie Said</p>
+          <p>
+            Official Lego scales are inconsistent across themes and eras. We plot
+            measured Lego sizes against movie/book canon dimensions so builders can
+            see how UCS, Playscale, and BAUFman-scale sets actually compare — and
+            convert sizes with curves fit to real data, not a single fixed ratio.
+          </p>
+          <p class="disclaimer">
+            This site uses Google Ads and may use affiliate links to Lego set
+            retailers to help cover hosting and maintenance costs. Ad content is
+            provided by Google; affiliate purchases may earn a commission at no
+            extra cost to you. Dimensions and fits are estimates for reference —
+            always verify critical measurements yourself.
+          </p>
+        </aside>
+      </div>
+    </header>
+
+    <div class="page">
+      <!-- AdSense placeholder: 160×600 wide skyscraper (replace with ad unit) -->
+      <aside class="ad-slot ad-vertical" aria-label="Advertisement">
+        <div class="ad-label">
+          Ad placeholder<br />
+          160×600<br />
+          <span style="opacity: 0.7">Insert AdSense unit</span>
+        </div>
+      </aside>
+
+      <main class="main-col">
+        <section class="panel" aria-labelledby="chart-heading">
+          <div class="panel-heading-row">
+            <h2 id="chart-heading" class="panel-title">Scale comparison</h2>
+            <div class="heading-controls">
+              <p class="chart-hint">Scroll to zoom · drag to pan</p>
+              <div class="unit-toggle" role="group" aria-label="Unit system">
+                <button type="button" class="unit-btn is-active" data-units="imperial" aria-pressed="true">
+                  in / ft
+                </button>
+                <button type="button" class="unit-btn" data-units="metric" aria-pressed="false">
+                  cm / m
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-toolbar">
+            <div class="toggle-group">
+              <span class="group-label">Data points</span>
+              <div class="toggle-row" id="toggle-points"></div>
+            </div>
+            <div class="toggle-group">
+              <span class="group-label">Fit curves</span>
+              <div class="toggle-row" id="toggle-curves"></div>
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" class="btn btn-ghost" id="btn-reset-zoom">
+                Reset zoom
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="scale-chart" aria-label="Scatter plot of Lego vs in-universe sizes"></canvas>
+          </div>
+        </section>
+
+        <!-- AdSense placeholder: 728×90 leaderboard (responsive) -->
+        <aside class="ad-slot ad-horizontal" aria-label="Advertisement">
+          <div class="ad-label">
+            Ad placeholder — 728×90 · Insert AdSense unit (no video / no pop-ups)
+          </div>
+        </aside>
+      </main>
+
+      <aside class="panel calc-panel" aria-labelledby="calc-heading">
+        <h2 id="calc-heading" class="panel-title">Scale calculator</h2>
+        <p class="calc-intro" id="calc-intro">
+          Convert dimensions using the fitted curve for a scale category (not a
+          fixed ratio). In-universe in feet; Lego in inches.
+        </p>
+
+        <form id="scale-calculator">
+          <div class="calc-field">
+            <label for="calc-category">Scale category</label>
+            <select id="calc-category" name="category" required></select>
+          </div>
+
+          <div class="calc-field">
+            <span class="calc-field-label" id="calc-direction-label">Direction</span>
+            <div
+              class="direction-toggle"
+              role="group"
+              aria-labelledby="calc-direction-label"
+            >
+              <button
+                type="button"
+                class="direction-btn is-active"
+                data-direction="universe-to-lego"
+                aria-pressed="true"
+              >
+                In-universe → Lego
+              </button>
+              <button
+                type="button"
+                class="direction-btn"
+                data-direction="lego-to-universe"
+                aria-pressed="false"
+              >
+                Lego → In-universe
+              </button>
+            </div>
+          </div>
+
+          <div class="calc-field">
+            <label for="calc-l" id="label-l">Length (In-universe ft)</label>
+            <input id="calc-l" name="length" type="number" min="0" step="any" placeholder="e.g. 41" />
+          </div>
+          <div class="calc-field">
+            <label for="calc-w" id="label-w">Width (In-universe ft)</label>
+            <input id="calc-w" name="width" type="number" min="0" step="any" placeholder="optional" />
+          </div>
+          <div class="calc-field">
+            <label for="calc-h" id="label-h">Height (In-universe ft)</label>
+            <input id="calc-h" name="height" type="number" min="0" step="any" placeholder="optional" />
+          </div>
+
+          <button type="submit" class="btn">Convert</button>
+
+          <div class="calc-result" id="calc-result" aria-live="polite">
+            <h3 id="result-unit">Lego (in)</h3>
+            <div id="calc-result-body"></div>
+          </div>
+
+          <button type="button" class="btn btn-ghost btn-block" id="btn-toggle-formula">
+            Show curve function
+          </button>
+          <p class="calc-formula" id="calc-formula" aria-live="polite" hidden></p>
+        </form>
+      </aside>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="js/curve-fit.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
