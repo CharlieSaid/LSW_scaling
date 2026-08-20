@@ -2,18 +2,116 @@
  * Scatter plot: X = in-universe dominant, Y = Lego dominant.
  * Category point/curve toggles + zoom/pan via chartjs-plugin-zoom.
  * Display units: imperial (in/ft) or metric (cm/m).
+ * Optional 1:35–1:45 scale cone + live "Your model" calculator point.
  */
 (function (global) {
   "use strict";
+
+  /** Fixed linear scales for the cone: y_in = x_ft * 12 / N */
+  const CONE_RATIOS = [45, 35];
+  const USER_COLOR = "#F6E05E";
+  const USER_BORDER = "#D69E2E";
 
   let chart = null;
   let ships = [];
   let fits = {};
   let categories = [];
   let unitSystem = ShipData.UNIT_SYSTEMS.imperial;
+  let coneVisible = false;
+  /** @type {{ xFt: number, yIn: number, category?: string } | null} */
+  let userModel = null;
   const pointVisible = {};
   const curveVisible = {};
   const visibilityListeners = [];
+
+  const conePlugin = {
+    id: "scaleCone",
+    beforeDatasetsDraw(ch) {
+      if (!coneVisible) return;
+      const { ctx, chartArea, scales } = ch;
+      const xScale = scales.x;
+      const yScale = scales.y;
+      if (!chartArea || !xScale || !yScale) return;
+
+      const xMin = xScale.min;
+      const xMax = xScale.max;
+      if (!(xMax > xMin)) return;
+
+      const pts = CONE_RATIOS.map((ratio) => {
+        const yAt = (xDisp) => {
+          const xFt = unitSystem.fromUniverseDisplay(xDisp);
+          const yIn = (xFt * 12) / ratio;
+          return unitSystem.toLegoDisplay(yIn);
+        };
+        return {
+          ratio,
+          y0: yAt(xMin),
+          y1: yAt(xMax),
+        };
+      });
+
+      // Fill cone between 1:45 (shallower) and 1:35 (steeper)
+      const lo = pts[0];
+      const hi = pts[1];
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(xScale.getPixelForValue(xMin), yScale.getPixelForValue(lo.y0));
+      ctx.lineTo(xScale.getPixelForValue(xMax), yScale.getPixelForValue(lo.y1));
+      ctx.lineTo(xScale.getPixelForValue(xMax), yScale.getPixelForValue(hi.y1));
+      ctx.lineTo(xScale.getPixelForValue(xMin), yScale.getPixelForValue(hi.y0));
+      ctx.closePath();
+      ctx.fillStyle = "rgba(43, 108, 176, 0.10)";
+      ctx.fill();
+
+      pts.forEach(({ ratio, y0, y1 }) => {
+        ctx.beginPath();
+        ctx.moveTo(xScale.getPixelForValue(xMin), yScale.getPixelForValue(y0));
+        ctx.lineTo(xScale.getPixelForValue(xMax), yScale.getPixelForValue(y1));
+        ctx.strokeStyle = "rgba(45, 55, 72, 0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Label near the right end of each line
+        const lx = xScale.getPixelForValue(xMax) - 8;
+        const ly = yScale.getPixelForValue(y1) - 6;
+        ctx.fillStyle = "rgba(45, 55, 72, 0.75)";
+        ctx.font = "600 11px Source Sans 3, Segoe UI, sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(`1:${ratio}`, lx, ly);
+      });
+      ctx.restore();
+    },
+  };
+
+  const userLabelPlugin = {
+    id: "userModelLabel",
+    afterDatasetsDraw(ch) {
+      if (!userModel) return;
+      const dsIndex = ch.data.datasets.findIndex((d) => d.kind === "user");
+      if (dsIndex < 0) return;
+      const meta = ch.getDatasetMeta(dsIndex);
+      const el = meta.data?.[0];
+      if (!el || meta.hidden) return;
+      const { ctx } = ch;
+      const x = el.x;
+      const y = el.y;
+      ctx.save();
+      ctx.font = "700 12px Source Sans 3, Segoe UI, sans-serif";
+      ctx.fillStyle = "#744210";
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 3;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      const label = "Your model";
+      const tx = x + 10;
+      const ty = y - 8;
+      ctx.strokeText(label, tx, ty);
+      ctx.fillText(label, tx, ty);
+      ctx.restore();
+    },
+  };
 
   function externalTooltipHandler(context) {
     const { chart: ch, tooltip } = context;
@@ -32,36 +130,50 @@
     }
 
     const dp = tooltip.dataPoints?.[0];
-    if (!dp || dp.dataset.kind !== "points") {
+    if (!dp || (dp.dataset.kind !== "points" && dp.dataset.kind !== "user")) {
       el.style.opacity = "0";
       return;
     }
 
-    const ship = dp.raw.ship;
     const u = unitSystem;
-    const linkHtml = ship.url
-      ? `<a href="${escapeAttr(ship.url)}" target="_blank" rel="noopener noreferrer">View set</a>`
-      : `<span class="link-placeholder">Link coming soon</span>`;
+    let html;
 
-    const legoDims = [
-      u.toLegoDisplay(ship.lego_length_in),
-      u.toLegoDisplay(ship.lego_width_in),
-      u.toLegoDisplay(ship.lego_height_in),
-    ];
-    const uniDims = [
-      u.toUniverseDisplay(ship.movie_length_ft),
-      u.toUniverseDisplay(ship.movie_width_ft),
-      u.toUniverseDisplay(ship.movie_height_ft),
-    ];
+    if (dp.dataset.kind === "user") {
+      const raw = dp.raw;
+      html = `
+        <strong>Your model</strong>
+        <div class="tip-row"><span>Category</span><span>${escapeHtml(raw.category || "—")}</span></div>
+        <div class="tip-row"><span>Lego (${u.legoLabel})</span><span>${fmtDim(raw.y)}</span></div>
+        <div class="tip-row"><span>In-universe (${u.universeLabel})</span><span>${fmtDim(raw.x)}</span></div>
+      `;
+    } else {
+      const ship = dp.raw.ship;
+      const linkHtml = ship.url
+        ? `<a href="${escapeAttr(ship.url)}" target="_blank" rel="noopener noreferrer">View set</a>`
+        : `<span class="link-placeholder">Link coming soon</span>`;
 
-    el.innerHTML = `
-      <strong>${escapeHtml(ship.name)}</strong>
-      <div class="tip-row"><span>Category</span><span>${escapeHtml(ship.category)}</span></div>
-      <div class="tip-row"><span>Lego (${u.legoLabel})</span><span>${fmtDim(legoDims[0])} × ${fmtDim(legoDims[1])} × ${fmtDim(legoDims[2])}</span></div>
-      <div class="tip-row"><span>In-universe (${u.universeLabel})</span><span>${fmtDim(uniDims[0])} × ${fmtDim(uniDims[1])} × ${fmtDim(uniDims[2])}</span></div>
-      <div class="tip-row"><span>Scale</span><span>${escapeHtml(ship.scale_label || "—")}</span></div>
-      <div class="tip-link">${linkHtml}</div>
-    `;
+      const legoDims = [
+        u.toLegoDisplay(ship.lego_length_in),
+        u.toLegoDisplay(ship.lego_width_in),
+        u.toLegoDisplay(ship.lego_height_in),
+      ];
+      const uniDims = [
+        u.toUniverseDisplay(ship.movie_length_ft),
+        u.toUniverseDisplay(ship.movie_width_ft),
+        u.toUniverseDisplay(ship.movie_height_ft),
+      ];
+
+      html = `
+        <strong>${escapeHtml(ship.name)}</strong>
+        <div class="tip-row"><span>Category</span><span>${escapeHtml(ship.category)}</span></div>
+        <div class="tip-row"><span>Lego (${u.legoLabel})</span><span>${fmtDim(legoDims[0])} × ${fmtDim(legoDims[1])} × ${fmtDim(legoDims[2])}</span></div>
+        <div class="tip-row"><span>In-universe (${u.universeLabel})</span><span>${fmtDim(uniDims[0])} × ${fmtDim(uniDims[1])} × ${fmtDim(uniDims[2])}</span></div>
+        <div class="tip-row"><span>Scale</span><span>${escapeHtml(ship.scale_label || "—")}</span></div>
+        <div class="tip-link">${linkHtml}</div>
+      `;
+    }
+
+    el.innerHTML = html;
 
     const canvasRect = ch.canvas.getBoundingClientRect();
     const left = canvasRect.left + window.scrollX + tooltip.caretX;
@@ -119,10 +231,18 @@
     };
   }
 
-  function buildDatasets() {
+  function dataXRangeFt() {
     const allX = ships.map((s) => s.movie_dominant_ft).filter(Number.isFinite);
-    const xMin = Math.min(...allX) * 0.9;
-    const xMax = Math.max(...allX) * 1.05;
+    if (userModel && Number.isFinite(userModel.xFt)) allX.push(userModel.xFt);
+    if (!allX.length) return { xMin: 0, xMax: 100 };
+    return {
+      xMin: Math.min(...allX) * 0.9,
+      xMax: Math.max(...allX) * 1.05,
+    };
+  }
+
+  function buildDatasets() {
+    const { xMin, xMax } = dataXRangeFt();
     const datasets = [];
 
     categories.forEach((cat) => {
@@ -167,12 +287,35 @@
       }
     });
 
+    if (userModel && Number.isFinite(userModel.xFt) && Number.isFinite(userModel.yIn)) {
+      datasets.push({
+        label: "Your model",
+        kind: "user",
+        data: [
+          {
+            x: unitSystem.toUniverseDisplay(userModel.xFt),
+            y: unitSystem.toLegoDisplay(userModel.yIn),
+            category: userModel.category || "",
+          },
+        ],
+        backgroundColor: USER_COLOR,
+        borderColor: USER_BORDER,
+        borderWidth: 2,
+        pointRadius: 8,
+        pointHoverRadius: 10,
+        showLine: false,
+        order: 0,
+      });
+    }
+
     return datasets;
   }
 
   function notifyVisibility() {
     visibilityListeners.forEach((fn) => fn({ ...pointVisible }, { ...curveVisible }));
   }
+
+  let pluginsRegistered = false;
 
   function init(canvas, shipList, fitMap) {
     ships = shipList;
@@ -186,6 +329,11 @@
     if (chart) {
       chart.destroy();
       chart = null;
+    }
+
+    if (!pluginsRegistered) {
+      Chart.register(conePlugin, userLabelPlugin);
+      pluginsRegistered = true;
     }
 
     const titles = axisTitles();
@@ -227,7 +375,8 @@
           tooltip: {
             enabled: false,
             external: externalTooltipHandler,
-            filter: (item) => item.dataset.kind === "points",
+            filter: (item) =>
+              item.dataset.kind === "points" || item.dataset.kind === "user",
           },
           zoom: {
             pan: { enabled: true, mode: "xy", modifierKey: null },
@@ -269,11 +418,6 @@
     chart.update("none");
   }
 
-  /**
-   * Points off → curve off (no curve without points).
-   * Curve off → points off (per product rule).
-   * Curve on → points on.
-   */
   function setPointVisible(cat, visible) {
     pointVisible[cat] = visible;
     if (!visible) curveVisible[cat] = false;
@@ -290,6 +434,23 @@
     }
     refresh();
     notifyVisibility();
+  }
+
+  function setConeVisible(visible) {
+    coneVisible = !!visible;
+    refresh();
+  }
+
+  function setUserModel(model) {
+    userModel =
+      model && Number.isFinite(model.xFt) && Number.isFinite(model.yIn)
+        ? {
+            xFt: model.xFt,
+            yIn: model.yIn,
+            category: model.category || "",
+          }
+        : null;
+    refresh();
   }
 
   function setUnitSystem(id) {
@@ -326,6 +487,8 @@
     refresh,
     setPointVisible,
     setCurveVisible,
+    setConeVisible,
+    setUserModel,
     setUnitSystem,
     getUnitSystem,
     resetZoom,

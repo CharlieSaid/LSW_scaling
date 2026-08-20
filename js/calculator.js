@@ -1,6 +1,7 @@
 /**
  * Scale Calculator — converts L/W/H via the selected category's fitted curve.
  * Fits are in imperial (ft↔in); display units follow the plot unit system.
+ * Live-updates a "Your model" point on the chart from entered dimensions.
  */
 (function (global) {
   "use strict";
@@ -21,6 +22,7 @@
     });
     form.querySelector("#calc-category")?.addEventListener("change", () => {
       updateFormulaText();
+      syncUserModelToChart();
     });
 
     form.querySelectorAll("[data-direction]").forEach((btn) => {
@@ -28,6 +30,13 @@
         direction = btn.getAttribute("data-direction");
         syncDirectionUi();
         syncLabels();
+        syncUserModelToChart();
+      });
+    });
+
+    ["#calc-l", "#calc-w", "#calc-h"].forEach((sel) => {
+      form.querySelector(sel)?.addEventListener("input", () => {
+        syncUserModelToChart();
       });
     });
 
@@ -40,12 +49,14 @@
     syncLabels();
     syncFormulaUi();
     updateFormulaText();
+    syncUserModelToChart();
   }
 
   function setFits(fitMap) {
     fits = fitMap;
     populateCategories();
     updateFormulaText();
+    syncUserModelToChart();
   }
 
   function setUnitSystem(sys) {
@@ -54,6 +65,7 @@
     updateFormulaText();
     const out = form?.querySelector("#calc-result-body");
     if (out) out.innerHTML = "";
+    syncUserModelToChart();
   }
 
   function populateCategories() {
@@ -116,7 +128,6 @@
       return;
     }
     const r2 = Number.isFinite(fit.params.r2) ? fit.params.r2.toFixed(3) : "—";
-    // Formula is always in native fit units (Lego in, in-universe ft).
     el.textContent = `${fit.formula}  (R² = ${r2}; y = Lego in, x = in-universe ft)`;
   }
 
@@ -125,6 +136,39 @@
     const w = parseFloat(form.querySelector("#calc-w").value);
     const h = parseFloat(form.querySelector("#calc-h").value);
     return { l, w, h };
+  }
+
+  /**
+   * Dominant entered value → chart point via selected category curve.
+   * Stored in native units (ft / in) for the plot.
+   */
+  function computeUserModel() {
+    if (!form) return null;
+    const { l, w, h } = readDims();
+    const vals = [l, w, h].filter((v) => Number.isFinite(v) && v > 0);
+    if (!vals.length) return null;
+
+    const dominant = Math.max(...vals);
+    const cat = form.querySelector("#calc-category").value;
+    const fit = fits[cat];
+    if (!fit || fit.params.n < 2) return null;
+
+    if (direction === "lego-to-universe") {
+      const yIn = unitSystem.fromLegoDisplay(dominant);
+      const xFt = fit.inverse(yIn);
+      if (!Number.isFinite(xFt) || xFt <= 0) return null;
+      return { xFt, yIn, category: cat };
+    }
+
+    const xFt = unitSystem.fromUniverseDisplay(dominant);
+    const yIn = fit.predict(xFt);
+    if (!Number.isFinite(yIn) || yIn <= 0) return null;
+    return { xFt, yIn, category: cat };
+  }
+
+  function syncUserModelToChart() {
+    if (typeof ScaleChart === "undefined" || !ScaleChart.setUserModel) return;
+    ScaleChart.setUserModel(computeUserModel());
   }
 
   function convertOne(displayValue, dir, fit) {
@@ -173,6 +217,7 @@
         <li><span>Height</span><strong>${fmt(rh)} ${unit}</strong></li>
       </ul>
     `;
+    syncUserModelToChart();
   }
 
   function fmt(n) {
@@ -180,5 +225,11 @@
     return Number(n.toPrecision(4)).toString();
   }
 
-  global.ScaleCalculator = { init, setFits, setUnitSystem, convert };
+  global.ScaleCalculator = {
+    init,
+    setFits,
+    setUnitSystem,
+    convert,
+    syncUserModelToChart,
+  };
 })(window);

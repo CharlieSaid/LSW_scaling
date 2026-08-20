@@ -383,6 +383,15 @@ a:hover {
   flex-shrink: 0;
 }
 
+.toggle-item .swatch-cone {
+  background: linear-gradient(
+    135deg,
+    rgba(43, 108, 176, 0.35),
+    rgba(43, 108, 176, 0.12)
+  );
+  border: 1px solid rgba(45, 55, 72, 0.45);
+}
+
 .toolbar-actions {
   margin-left: auto;
   display: flex;

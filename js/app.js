@@ -29,6 +29,10 @@
       document.getElementById("btn-reset-zoom")?.addEventListener("click", () => {
         ScaleChart.resetZoom();
       });
+
+      document.getElementById("toggle-cone")?.addEventListener("change", (e) => {
+        ScaleChart.setConeVisible(e.target.checked);
+      });
     } catch (err) {
       console.error(err);
     }
@@ -40,6 +44,7 @@
         const id = btn.getAttribute("data-units");
         const sys = ScaleChart.setUnitSystem(id);
         ScaleCalculator.setUnitSystem(sys);
+        ScaleCalculator.syncUserModelToChart();
         document.querySelectorAll("[data-units]").forEach((b) => {
           const active = b.getAttribute("data-units") === id;
           b.classList.toggle("is-active", active);
