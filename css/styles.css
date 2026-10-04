@@ -35,6 +35,12 @@ body {
   background: var(--bg);
   line-height: 1.45;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body > .page {
+  flex: 1;
 }
 
 a {
@@ -564,6 +570,105 @@ a:hover {
 .calc-panel .btn {
   width: 100%;
   margin-top: 0.25rem;
+}
+
+/* —— Footer —— */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-muted);
+  padding: 1rem 1.25rem;
+  margin-top: auto;
+}
+
+.footer-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+}
+
+.footer-copy {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.footer-nav a {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer-nav a:hover {
+  text-decoration: underline;
+}
+
+/* —— Content pages (About, Privacy) —— */
+body.content-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-link {
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand-link:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.content-page {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2.5rem;
+}
+
+.content-page .panel-title {
+  margin-bottom: 1rem;
+  font-size: 1.35rem;
+}
+
+.prose p {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.prose h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+
+.prose ul {
+  margin: 0 0 0.85rem;
+  padding-left: 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.prose li {
+  margin-bottom: 0.35rem;
+}
+
+.prose .muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 /* —— Responsive —— */
