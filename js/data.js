@@ -11,6 +11,10 @@
     BAUFman: { color: "#2F855A", order: 2 },
   };
 
+  /** Official LEGO horizontal module (stud pitch), in millimetres. */
+  const STUD_MM = 8;
+  const MM_PER_INCH = 25.4;
+
   /** Plot/calculator display units. Data + fits always use imperial (in/ft). */
   const UNIT_SYSTEMS = {
     imperial: {
@@ -29,6 +33,15 @@
       toLegoDisplay: (inches) => inches * 2.54,
       toUniverseDisplay: (feet) => feet * 0.3048,
       fromLegoDisplay: (cm) => cm / 2.54,
+      fromUniverseDisplay: (m) => m / 0.3048,
+    },
+    studs: {
+      id: "studs",
+      legoLabel: "studs",
+      universeLabel: "m",
+      toLegoDisplay: (inches) => (inches * MM_PER_INCH) / STUD_MM,
+      toUniverseDisplay: (feet) => feet * 0.3048,
+      fromLegoDisplay: (studs) => (studs * STUD_MM) / MM_PER_INCH,
       fromUniverseDisplay: (m) => m / 0.3048,
     },
   };

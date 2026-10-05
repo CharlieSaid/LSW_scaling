@@ -1,7 +1,7 @@
 /**
  * Scatter plot: X = in-universe dominant, Y = Lego dominant.
  * Category point/curve toggles + zoom/pan via chartjs-plugin-zoom.
- * Display units: imperial (in/ft) or metric (cm/m).
+ * Display units: imperial (in/ft), metric (cm/m), or studs (studs/m).
  * Optional 1:35–1:45 scale cone + live "Your model" calculator point.
  */
 (function (global) {
