@@ -434,6 +434,32 @@ a:hover {
   color: var(--blue-dark);
 }
 
+.btn-ghost.is-active {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-tiny {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.btn-danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #9b2c2c;
+  border-color: #9b2c2c;
+}
+
 .chart-hint {
   margin: 0;
   font-size: 0.72rem;
@@ -444,6 +470,16 @@ a:hover {
   position: relative;
   height: min(58vh, 520px);
   min-height: 320px;
+}
+
+.chart-wrap canvas.is-dragging-custom {
+  cursor: grabbing;
+}
+
+.popup-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 .chart-tooltip {
@@ -492,6 +528,114 @@ a:hover {
   color: var(--text-muted);
   font-style: italic;
   font-size: 0.75rem;
+}
+
+.custom-point-popup {
+  position: absolute;
+  z-index: 55;
+  background: #fff;
+  border: 1px solid var(--blue);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(26, 79, 139, 0.15);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.8rem;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.custom-point-popup-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.custom-point-popup-head strong {
+  margin: 0;
+  color: var(--blue-dark);
+  font-size: 0.88rem;
+}
+
+.custom-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.tip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border);
+}
+
+.custom-point-edit label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.custom-point-edit input,
+.custom-point-dialog input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.15rem;
+}
+
+.custom-point-edit input:focus,
+.custom-point-dialog input:focus {
+  outline: 2px solid var(--blue-soft);
+  border-color: var(--blue);
+}
+
+.custom-point-dialog {
+  border: 1px solid var(--blue);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  max-width: 320px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 8px 28px rgba(26, 79, 139, 0.18);
+}
+
+.custom-point-dialog::backdrop {
+  background: rgba(26, 32, 44, 0.35);
+}
+
+.custom-point-dialog h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--blue-dark);
+}
+
+.custom-point-dialog .muted {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.custom-point-dialog label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.custom-point-dialog .tip-actions {
+  border-top: none;
+  padding-top: 0.65rem;
+  margin-top: 0.35rem;
 }
 
 /* —— Calculator —— */
